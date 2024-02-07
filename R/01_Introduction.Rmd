@@ -1,0 +1,295 @@
+---
+title: "01 Introduction"
+author: "Bernardo Chombo-Álvarez"
+date: "2024-02-03"
+output:
+  html_document:
+    toc: true
+    code_fold: show
+header-includes:
+   - \usepackage{setspace}
+   - \singlespacing
+   - \usepackage{paralist}
+   - \let\itemsize\compactitem
+fontsize: 11pt
+mainfont: Calibri
+sansfont: Calibri
+monofont: Calibri
+indent: true
+---
+# Basic Concepts
+Data mining as an startegy to the exponential increase of the data produced nowadays. Tools like IA and machine learning are pilars in this Information Era. 
+
+## **Data mining**
+Multidisciplinary field and represent the intersection between statistics, computational sciences and IA. 
+- Understand the data
+- Understand its structure
+- Knwoledge discovery
+- Which variables are we gonna use?
+- How are going to transfrom the data?
+- ANalyze and find the patterns
+- Re-analyze and get to the point we are looking for.
+
+## **Cluster analyzis stages**
+- Attribute selection
+- Attribute extraction
+- Object similarity
+- Grouping
+
+## **Essential questions**
+- How are going to measure the similarity? Include statistics and data distribution
+- How are we going to define the clusters? 
+- How many groups should be formed? The less the better. The more homogeneous, the better.
+- What characterizes a good grouping and a bad grouping? Statistically speaking, measure the randomness.
+
+## **Precautions**
+- Data with no cluster should not be processed.
+- There is not an universal technique or tool for data processing
+- There are no unique solutions (Parameters combinatory).
+- The **principal** usage should be in a confirmatory way.
+- By consequence, the solution is **not generalizable**.
+- Be careful with the indirect variables because they might have a great impact in the method appliance.
+- **JUSTIFY CORRECTLY**
+- **HAVE A COMPLETE KNOWLEDGE OF WHAT YOU ARE DOING**
+
+### Example
+```{R basic_example, include=TRUE, echo=TRUE, warning=FALSE, message=FALSE, eval=TRUE}
+df <- data.frame(V1 = c(3,4,4,2,6,7,8),
+                 V2 = c(2,5,7,7,6,7,4))
+df <- t(df)
+colnames(df) <- c("A","B","C","D","E","F","G")
+print(df)
+
+```
+
+# Euclidean distance
+Geometric distance between two points in a plane.
+- **Hierarchical strategy**: Identify two close clusters and merge them. This is an aglomerative method.
+- Creating clusters: according to the mean distance inside the cluster, which on is the best alternative.
+- Final solution: always subjective
+- Number of clusters: elbow, silhouette
+
+# Impact of the distance measure
+Multiple ways of deciding what is the grouping criteria for that cluster.
+- single linkage: $D(X,Y) = min d(x,y)$ The observation is the minimum distance. Get closer the groups
+- complete linkage: $D(X,Y) = max d(x,y)$ Get farther the groups.
+- average linkage: medium point between min and max linkage.
+- Ward method: groups in terms of which combination reduces the variance inside the cluster.
+
+# Clustering principles
+## Hierarchical
+- Calculate a 'centroid' for each cluster formed
+- Finally calculate the 'gravitational center' of the whole cluster.
+
+**Aglomerative**
+- From more to less.
+
+**Divisive**
+- From less to more.
+
+## Non-hierarchical (k-means)
+- divide the data in k initial clusters
+- Calculate the k-means or centroids for each k cluster
+- For an individual observation, calculate their distances to each centroid and assign this observation to the closest cluster
+- Repeat step 3 for each observation
+- Repeat the steps until no observation could be reassigned
+- Disadvantage: can erroneously cluster.
+
+# Elbow method
+- heuristic method
+- Graph the heterogeneity
+- the elbow is the optimal number
+
+# Silhouette method
+- heuristic method
+- Similarity of each observation with its own cluster in contrast the other clusters
+- A higher score (more distance in contrast the other clusters), the better approach.
+
+# Gap statistic method
+- Quantifies the difference in the variation in the inside of the clusters in contrast to the expected values.
+
+# Example in Slides
+```{R exslides, include=TRUE, echo=TRUE, warning=FALSE, message=FALSE, eval=TRUE, fig.align='center'}
+library(cluster)
+suppressPackageStartupMessages(library(factoextra))
+suppressPackageStartupMessages(library(dendextend))
+suppressPackageStartupMessages(library(ape))
+
+#read the data
+InputData  <- read.table("../data/ejemplo_clase.csv", header = TRUE, sep = ",", quote="", row.names = 1)
+
+#Run the hierarchical clustering and plot the dendogram
+ccom <- hclust(dist(InputData), method = "complete")
+plot (ccom, hang = -1)
+
+#Save tree in Newick format
+# my_tree <- as.phylo(ccom)
+# write.tree(phy=my_tree, file="ejemplo_clase.tree")  
+
+#cut the dendogram such that 3 clusters can be visualized
+rect.hclust(ccom, k=3, border=2:4)
+
+#get the data points within each cluster
+cls3 <- cutree(ccom, k=3)
+
+#Scatter plot to visualize the data points in each cluster
+plot(InputData, xlim=c(0,8), ylim=c(0,8), col=cls3)
+fviz_cluster(list(data = InputData, cluster = cls3))
+
+#==================================================================
+#Now compare with method single linkage
+
+csin <- hclust(dist(InputData), method = "single")
+plot (csin, hang = -1)
+rect.hclust(csin, k=3, border=2:4)
+
+dend1 <- as.dendrogram (ccom)
+dend2 <- as.dendrogram (csin)
+
+dend_list <- dendlist(dend1, dend2)
+tanglegram(dend1, dend2, main = paste("Entanglement =", entanglement(dend_list)))
+
+
+#==================================================================
+# Determine the number of clusters
+
+#Methods: Total Within Sum of Squares (wss), silhouette, gap_stat
+fviz_nbclust(InputData, FUN = hcut, hc_method = "ward.D2", method = "wss", k.max = 6) +
+  labs(subtitle = "The Elbow Method")
+
+#The silhouette method applied to hclust
+fviz_nbclust(InputData, FUN = hcut, hc_func = "hclust", hc_method = "ward.D2", method = "silhouette", k.max = 6) +
+  labs(subtitle = "Silhouette method")
+```
+
+# Exercises
+Here we used hClustering.R
+
+```{R ex1, include=TRUE, echo=TRUE, warning=FALSE, message=FALSE, eval=TRUE, fig.align='center'}
+#read the data
+#InputData  <- read.table("3_clear_clusters_2vars.csv", header = TRUE, sep = ",", quote="", row.names = 1)
+InputData  <- read.table("../data/3_ovlp_clusters_2vars.csv", header = TRUE, sep = ",", quote="", row.names = 1)
+#InputData  <- read.table("no_clusters_2vars.csv", header = TRUE, sep = ",", quote="", row.names = 1)
+
+## Data with structure but no obvious
+
+#==================================================================
+#build the dendogram whith hclust
+
+hClusters <- hclust(dist(InputData), method = "complete")
+coeff <- coef(hClusters) # coef aglomerative. Close to 1 means it is strong
+plot (hClusters, hang = -1, main = "hclust Dendogram")
+cls3 <- cutree(hClusters, k=3)
+
+#cut the dendogram such that 3 clusters are produced
+rect.hclust(hClusters, k=3, border=2:4)
+fviz_cluster(list(data = InputData, cluster = cls3))
+
+#==================================================================
+#Build the dendogram with agnes
+
+aClust <- agnes(InputData, method = "complete")
+pltree(aClust, cex = 0.6, hang = -1, main = "agnes Dendrogram") 
+aCoeff <- aClust$ac
+rect.hclust(as.hclust(aClust), k=3, border=2:4)
+aCls3 <- cutree(as.hclust(aClust), k = 3)
+fviz_cluster(list(data = InputData, cluster = aCls3))
+
+
+#==================================================================
+## DIVISIVE
+#Build the dendogram with Diana
+
+dClust <- diana(InputData)
+pltree(dClust, cex = 0.6, hang = -1, main = "Diana Dendrogram")
+dCoeff <- dClust$dc
+rect.hclust(as.hclust(dClust), k=3, border=2:4)
+dCls3 <- cutree(as.hclust(dClust), k = 3)
+
+fviz_cluster(list(data = InputData, cluster = aCls3))
+
+#==================================================================
+#Compare two dendograms (slow method)
+## Horrible entanglement, it is too stupid
+
+dend1 <- as.dendrogram (hClusters)
+dend2 <- as.dendrogram (as.hclust(aClust))
+
+dend_list <- dendlist(dend1, dend2)
+tanglegram(dend1, dend2, main = paste("Entanglement =", entanglement(dend_list)))
+
+#==================================================================
+# Determine the number of clusters
+
+#Methods: Total Within Sum of Squares (wss), silhouette, gap_stat
+fviz_nbclust(InputData, FUN = hcut, hc_method = "ward.D2", method = "wss", k.max = 10) +
+  labs(subtitle = "The Elbow Method")
+
+#The silhouette method applied to hclust
+fviz_nbclust(InputData, FUN = hcut, hc_func = "hclust", hc_method = "ward.D2", method = "silhouette", k.max = 7) +
+  labs(subtitle = "Silhouette method")
+```
+## Cmpare methods
+```{R ex2, include=TRUE, echo=TRUE, warning=FALSE, message=FALSE, eval=TRUE, fig.align='center'}
+library(cluster)
+suppressPackageStartupMessages(library(factoextra))
+suppressPackageStartupMessages(library(dendextend))
+suppressPackageStartupMessages(library(ape))
+
+#==================================================================
+#Generate random data to cluster
+
+data <- rbind(matrix(rnorm(300, mean =  20, sd = 1), ncol = 2),
+              matrix(rnorm(300, mean = 24,  sd = 1), ncol = 2),
+              matrix(rnorm(300, mean = 28,  sd = 1), ncol = 2),
+              matrix(rnorm(300, mean = 32,  sd = 1), ncol = 2))
+colnames(data) <- c("x", "y")
+
+
+#==================================================================
+## RANDOM
+
+#Run kmeans and generate scatter plot
+
+#centroids <- rbind(c(4.347548, 4.716311),c(6.067601, 4.498569),c(4.829717, 6.285432), c(27.462508, 27.563207))
+#centroids <- rbind(c(4.347548, 4.716311),c(6.067601, 4.498569),c(27.462508, 27.563207))
+km <- kmeans(data, centers=4, nstart = 10) ## Change nstart for running multiple tests
+plot(data, col = km$cluster)
+points(km$centers, col = 2:4, pch = 8, cex=3)
+
+
+#==================================================================
+#compare with hclust
+
+
+hc  <- hclust(dist(data), method = "ward.D2")
+coeff <- coef(hc)
+cls3 <- cutree(hc, k=4)
+plot(data, col = cls3)
+
+plot (hc, hang=-1)
+rect.hclust(hc, k=4, border=2:4)
+
+
+
+
+#==================================================================
+# Determine the number of clusters
+
+#Methods: Total Within Sum of Squares (wss), silhouette, gap_stat
+fviz_nbclust(data, FUN = hcut, hc_method = "ward.D2", method = "wss", k.max = 5) +
+  labs(subtitle = "The Elbow Method")
+
+#The silhouette method applied to hclust
+fviz_nbclust(data, FUN = hcut, hc_func = "hclust", hc_method = "ward.D2", method = "silhouette", k.max = 10) +
+  labs(subtitle = "Silhouette method")
+
+#The gap statistic method applied to k-means 
+fviz_nbclust(data, FUN = kmeans, k.max = 10, nstart = 20,  method = "gap_stat", nboot = 50) +
+  labs(subtitle = "Gap statistic method")
+
+```
+
+# References
+Notes: https://cursos.lcg.unam.mx/mod/folder/view.php?id=7275
+
